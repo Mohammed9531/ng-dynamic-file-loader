@@ -4,9 +4,9 @@ import { AsyncSubject } from "rxjs/Rx";
  * @author: Shoukath Mohammed 
  **
 /**
- ** @name: LoaderOptions
-  * @type: Interface
-  */
+ * @name: LoaderOptions
+ * @type: Interface
+ */
 export interface LoaderOptions {
   url: string;
   async?: boolean;

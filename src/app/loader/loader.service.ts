@@ -166,4 +166,8 @@ export class LoaderService {
     // load the next request in the queue
     this.loadNextQueueRequest();
   }
+
+  private getFileExt(url: string): string {
+    return url.split('/').pop().split('#')[0].split('?')[0].split('.')[1];
+  }
 }
