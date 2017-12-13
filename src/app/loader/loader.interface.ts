@@ -22,4 +22,9 @@ export interface NodeLoadEvent<T> {
 export interface NodeOptions {
     options?: LoaderOptions;
     isLoaded$: AsyncSubject<boolean>
-}
+};
+
+export interface NodePreset {
+    originalValue: any; 
+    fallbackValue: any;
+};
