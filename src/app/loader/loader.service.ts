@@ -5,6 +5,9 @@ import { AsyncSubject, BehaviorSubject, Observable } from 'rxjs/Rx';
 // access the native document
 declare const document: any;
 
+/**
+ * @author: Shoukath Mohammed 
+ */
 @Injectable()
 export class LoaderService {
 

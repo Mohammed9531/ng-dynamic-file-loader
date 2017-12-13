@@ -1,6 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { LoaderService } from './loader/loader.service';
 
+/**
+ * @author: Shoukath Mohammed 
+ */
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',

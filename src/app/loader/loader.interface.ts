@@ -1,15 +1,17 @@
 import { AsyncSubject } from 'rxjs/Rx';
 
+/**
+ * @author: Shoukath Mohammed 
+ */
 export interface LoaderOptions {
     url: string;
-    targetElement: HTMLElement,
+    async?: boolean;
     elementId?: string;
     loadAfter?: boolean;
-    loadAfterElement?: HTMLElement;
     isStylesheet: boolean;
-    async?: boolean;
+    targetElement: HTMLElement,
+    loadAfterElement?: HTMLElement;
 };
-
 
 export interface NodeLoadEvent<T> {
     el?: T;
