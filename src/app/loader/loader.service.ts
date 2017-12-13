@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { LoaderOptions, NodeLoadEvent } from './loader.interface';
+import { LoaderOptions, NodeLoadEvent, NodeOptions } from './loader.interface';
 import { AsyncSubject, BehaviorSubject, Observable } from 'rxjs/Rx';
 
 // access the native document
@@ -43,43 +43,58 @@ export class LoaderService {
      * process file based on the file type, currently it only supports
      * stylesheet or a script
      */
+    const opts: NodeOptions = {
+      options: options,
+      isLoaded$: isLoaded$
+    };
     if (!options.isStylesheet) {
-      this.loadScript(options, isLoaded$);
+      this.loadScript(opts);
     }
     else {
-      this.loadStylesheet(options, isLoaded$);
+      this.loadStylesheet(opts);
     }
     return isLoaded$.asObservable();
   }
 
-  private loadScript(options: LoaderOptions, isLoaded$: AsyncSubject<boolean>): void {
-
-  }
-
-  private loadStylesheet(options: LoaderOptions, isLoaded$: AsyncSubject<boolean>): void {
-    let el: HTMLLinkElement = <HTMLLinkElement>document.createElement('link');
-
-    el.rel = 'stylesheet';
-    el.type = 'text/css';
-    el.media = 'screen';
-    el.href = options.url;
-
+  private processLoading(e: NodeLoadEvent<HTMLElement>): void {
     // gets called on file load
+    const el: HTMLElement = e.el;
     (<any>el).onreadystatechange = el.onload = this.onload.bind(this, {
       el: el,
-      options: options,
-      isLoaded$: isLoaded$
+      options: e.options,
+      isLoaded$: e.isLoaded$
     });
 
     // gets called on file load error
     el.onerror = this.onerror.bind(this, {
-      options: options,
-      isLoaded$: isLoaded$
+      options: e.options,
+      isLoaded$: e.isLoaded$
     });
 
     // use body if available. more safe in IE
     // (document.body || head).appendChild(styles);
-    options.targetElement.appendChild(el);
+    e.options.targetElement.appendChild(el);
+  }
+
+  private loadScript(opts: NodeOptions): void {
+    let el_: HTMLScriptElement = <HTMLScriptElement>document.createElement('script');
+
+    el_.src   = opts.options.url;
+    el_.type  = 'text/javascript';
+    el_.id    = opts.options.elementId;
+    el_.async = opts.options.async || false;
+    this.processLoading({ el: el_, options: opts.options, isLoaded$: opts.isLoaded$ });
+  }
+
+  private loadStylesheet(opts: NodeOptions): void {
+    let el_: HTMLLinkElement = <HTMLLinkElement>document.createElement('link');
+
+    el_.media = 'screen';
+    el_.type  = 'text/css';
+    el_.rel   = 'stylesheet';
+    el_.href  = opts.options.url;
+    el_.id    = opts.options.elementId;
+    this.processLoading({ el: el_, options: opts.options, isLoaded$: opts.isLoaded$ });
   }
 
   private preset(originalValue: any, fallbackValue: any): boolean {
@@ -92,7 +107,9 @@ export class LoaderService {
   private onload(e: NodeLoadEvent<HTMLLinkElement>): void {
     const state: any = (<any>e.el).readyState;
 
-    if (!this.loadedFiles[e.options.url] && (!state || /loaded|complete/.test(state))) {
+    if (!this.loadedFiles[e.options.url] && 
+      (!state || /loaded|complete/.test(state))) {
+  
       this.loadedFiles[e.options.url] = true;
       delete this.loadingFile[e.options.url];
       e.isLoaded$.next(true);
