@@ -1,5 +1,6 @@
 import { Injectable } from "@angular/core";
 import { AsyncSubject, Observable } from "rxjs/Rx";
+import { LoaderConstants } from './loader.constants';
 import { LoaderOptions, NodeLoadEvent, NodeOptions, NodePreset } from "./loader.interface";
 
 /**
@@ -34,6 +35,9 @@ export class LoaderService {
       isLoaded$: isLoaded$
     };
 
+    options.isStylesheet = options.isStylesheet 
+                          || this.getFileExt(options.url) === 'css';
+    
     // get the index of current request to check if the
     // current script/stylesheet was already loaded.
     const currIdx: number = this.queue.findIndex(
@@ -57,10 +61,19 @@ export class LoaderService {
      * process file based on the file type, currently it only supports
      * stylesheet or a script
      */
-    if (!options.isStylesheet) {
-      this.loadScript(config);
+    const extns: string[] = LoaderConstants.supportedExtns;
+
+    // do not process unsupported file formats 
+    if (extns.indexOf(this.getFileExt(options.url)) === -1) {
+      isLoaded$.error({isLoaded: false});
+      isLoaded$.complete();
+
+      this.loading = false;
+      this.loadNextQueueRequest();
     } else {
-      this.loadStylesheet(config);
+      // if the current request url is of supported extensions
+      // process it further
+      this[LoaderConstants[this.getFileExt(options.url)]](config);
     }
 
     // return an observable so user can subscribe to it.
@@ -168,6 +181,6 @@ export class LoaderService {
   }
 
   private getFileExt(url: string): string {
-    return url.split('/').pop().split('#')[0].split('?')[0].split('.')[1];
+    return url.split('/').pop().split('#')[0].split('?')[0].split('.').pop();
   }
 }
