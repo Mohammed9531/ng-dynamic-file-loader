@@ -1,9 +1,16 @@
 import { Injectable } from "@angular/core";
-import { AsyncSubject, BehaviorSubject, Observable } from "rxjs/Rx";
+import { AsyncSubject, Observable } from "rxjs/Rx";
 import { LoaderOptions, NodeLoadEvent, NodeOptions, NodePreset } from "./loader.interface";
 
-// access the native document
+/**
+ * @description: access the native document object
+ */
 declare const document: any;
+
+/**
+ * @description: declare union type for supported elements
+ */
+type SupportedElements = HTMLLinkElement | HTMLScriptElement;
 
 /**
  * @author: Shoukath Mohammed 
@@ -14,22 +21,21 @@ export class LoaderService {
   private queue: any[] = [];
   private loadingFile: any = {};
   private loadedFiles: any = {};
-  private isLoading$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(
-    false
-  );
 
   constructor() {}
 
-  public load(
-    options: LoaderOptions,
-    isLoaded$?: AsyncSubject<boolean>
-  ): Observable<boolean> {
+  public load(options: LoaderOptions,
+    isLoaded$?: AsyncSubject<boolean>): Observable<boolean> {
     isLoaded$ = isLoaded$ || new AsyncSubject<boolean>();
 
-    const config: any = {
+    // reusable configuration for various node events
+    const config: NodeOptions = {
       options: options,
       isLoaded$: isLoaded$
     };
+
+    // get the index of current request to check if the
+    // current script/stylesheet was already loaded.
     const currIdx: number = this.queue.findIndex(
       req => req.url === options.url
     );
@@ -42,6 +48,8 @@ export class LoaderService {
     } else {
       // process the rquest
       this.loading = true;
+
+      // add the current url to the loading queue
       this.loadingFile[options.url] = true;
     }
 
@@ -49,15 +57,13 @@ export class LoaderService {
      * process file based on the file type, currently it only supports
      * stylesheet or a script
      */
-    const opts: NodeOptions = {
-      options: options,
-      isLoaded$: isLoaded$
-    };
     if (!options.isStylesheet) {
-      this.loadScript(opts);
+      this.loadScript(config);
     } else {
-      this.loadStylesheet(opts);
+      this.loadStylesheet(config);
     }
+
+    // return an observable so user can subscribe to it.
     return isLoaded$.asObservable();
   }
 
@@ -121,19 +127,29 @@ export class LoaderService {
     return pre.originalValue;
   }
 
-  private onload(e: NodeLoadEvent<HTMLLinkElement>): void {
+  private loadNextQueueRequest(): void {
+    const nextQueueItem: any = this.queue.shift();
+
+    if (!!nextQueueItem) {
+      this.load(nextQueueItem.options, nextQueueItem.isLoaded$);
+    }
+  }
+
+  private onload(e: NodeLoadEvent<SupportedElements>): void {
     const state: any = (<any>e.el).readyState;
 
     if (
       !this.loadedFiles[e.options.url] &&
       (!state || /loaded|complete/.test(state))
     ) {
+    
       this.loadedFiles[e.options.url] = true;
       delete this.loadingFile[e.options.url];
       e.isLoaded$.next(true);
       e.isLoaded$.complete();
       this.loading = false;
 
+      // load the next request in the queue
       this.loadNextQueueRequest();
     }
   }
@@ -146,14 +162,8 @@ export class LoaderService {
     e.isLoaded$.complete();
 
     this.loading = false;
+
+    // load the next request in the queue
     this.loadNextQueueRequest();
-  }
-
-  private loadNextQueueRequest(): void {
-    const nextQueueItem: any = this.queue.shift();
-
-    if (!!nextQueueItem) {
-      this.load(nextQueueItem.options, nextQueueItem.isLoaded$);
-    }
   }
 }
