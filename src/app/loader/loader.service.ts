@@ -28,14 +28,16 @@ export class LoaderService {
   constructor() {}
 
   /**
-   * @private
+   * @public
    * @param: {options<LoaderOptions>}
    * @param: {isLoaded$<AsyncSubject<boolean>>}
    * @return: Observable<boolean>
    * @description: a reusable helper function to process the request 
    */
-  public load(options: LoaderOptions,
-    isLoaded$?: AsyncSubject<LoaderEvent>): Observable<LoaderEvent> {
+  public load(
+    options: LoaderOptions,
+    isLoaded$?: AsyncSubject<LoaderEvent>
+  ): Observable<LoaderEvent> {
     isLoaded$ = isLoaded$ || new AsyncSubject<LoaderEvent>();
 
     // reusable configuration for various node events
@@ -45,7 +47,6 @@ export class LoaderService {
     };
 
     options.isStylesheet = this.isStylesheet(options);
-    
     // get the index of current request to check if the
     // current script/stylesheet was already loaded.
     const currIdx: number = this.queue.findIndex(
@@ -73,9 +74,9 @@ export class LoaderService {
      */
     const extns: string[] = LoaderConstants.supportedExtns;
 
-    // do not process unsupported file formats 
+    // do not process unsupported file formats
     if (extns.indexOf(this.getFileExt(options.url)) === -1) {
-      isLoaded$.error({isLoaded: false});
+      isLoaded$.error({ isLoaded: false });
       isLoaded$.complete();
 
       this.loading = false;
@@ -91,6 +92,27 @@ export class LoaderService {
   }
 
   /**
+   * @public
+   * @return: void
+   * @description: removes all dynamically loaded scripts from the DOM 
+   */
+  public removeAll(): void {
+    let el: HTMLElement;
+    const _keys: string[] = Object.keys(this.loadedFiles);
+
+    for (let i = 0; i < _keys.length; i++) {
+
+      // find the element by id
+       el = document.getElementById(_keys[i]);
+       
+       // remove only if the remove method exists
+       if (el.remove instanceof Function) {
+         el.remove();
+       }
+    }
+  }
+
+  /**
    * @private
    * @param: {opts<NodeOptions>}
    * @return: void
@@ -99,14 +121,12 @@ export class LoaderService {
   private processRequest(e: NodeLoadEvent<HTMLElement>): void {
     // gets called on file load
     const el: HTMLElement = e.el;
-    (<any>el).onreadystatechange = el.onload = this.onLoad.bind(this, 
+    (<any>el).onreadystatechange = el.onload = this.onLoad.bind(this,
       new LoaderModel(<any>e, el)
     );
 
     // gets called on file load error
-    el.onerror = this.onError.bind(this, 
-      new LoaderModel(<any>e, el)
-    );
+    el.onerror = this.onError.bind(this, new LoaderModel(<any>e, el));
 
     // use body if available. more safe in IE
     // (document.body || head).appendChild(styles);
@@ -121,12 +141,12 @@ export class LoaderService {
    */
   private loadScript(opts: NodeOptions): void {
     type Script = HTMLScriptElement;
-    const el: Script  = <Script>document.createElement("script");
+    const el: Script = <Script>document.createElement("script");
 
     el.src = opts.options.url;
     el.type = "text/javascript";
-    el.id = opts.options.elementId;
     el.async = opts.options.async || false;
+    el.id = opts.options.elementId || this.getUUId();
 
     this.processRequest(new LoaderModel(opts, el));
   }
@@ -141,12 +161,12 @@ export class LoaderService {
     type Style = HTMLLinkElement;
     const el: Style = <Style>document.createElement("link");
 
-    el.media = "screen";
     el.type = "text/css";
     el.rel = "stylesheet";
     el.href = opts.options.url;
-    el.id = opts.options.elementId;
-  
+    el.id = opts.options.elementId || this.getUUId();
+    el.media = (opts.options.mediaType || "screen").toLowerCase();
+
     this.processRequest(new LoaderModel(opts, el));
   }
 
@@ -162,17 +182,6 @@ export class LoaderService {
       pre.originalValue = pre.fallbackValue;
     }
     return pre.originalValue;
-  }
-
-  /**
-   * @private
-   * @param: {pre<NodePreset>}
-   * @param: {dataType<string>}
-   * @return: <T>
-   * @description: a helper function to map the loader configuration
-   */
-  private getLoader(): any {
-
   }
 
   /**
@@ -203,15 +212,15 @@ export class LoaderService {
       !this.loadedFiles[e.options.url] &&
       (!state || /loaded|complete/.test(state))
     ) {
-    
-      this.loadedFiles[e.options.url] = true;
       delete this.loadingFile[e.options.url];
+      this.loadedFiles[e.el.id] = {src: e.options.url};
 
       e.isLoaded$.next(new LoaderEvent(e.options, null, null, true));
       e.isLoaded$.complete();
       this.loading = false;
 
       // load the next request in the queue
+      console.log(this.loadedFiles);
       this.loadNextQueueRequest();
     }
   }
@@ -240,7 +249,13 @@ export class LoaderService {
    * @description: returns the file extensions as a string 
    */
   private getFileExt(url: string): string {
-    return url.split('/').pop().split('#')[0].split('?')[0].split('.').pop();
+    return url
+      .split("/")
+      .pop()
+      .split("#")[0]
+      .split("?")[0]
+      .split(".")
+      .pop();
   }
 
   /**
@@ -250,6 +265,16 @@ export class LoaderService {
    * @description: returns true if the requested file is a stylesheet
    */
   private isStylesheet(options: LoaderOptions): boolean {
-    return options.isStylesheet || this.getFileExt(options.url) === 'css';
+    return options.isStylesheet || this.getFileExt(options.url) === "css";
+  }
+
+  /**
+   * @private
+   * @return: string
+   * @description: generates a unique id
+   */
+  private getUUId(): string {
+    const getUUId: any = (): number => Math.floor(Math.random() * 10000);
+    return `C${getUUId()}_${getUUId()}`;
   }
 }

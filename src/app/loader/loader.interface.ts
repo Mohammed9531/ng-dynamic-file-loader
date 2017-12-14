@@ -11,6 +11,7 @@ import { LoaderEvent } from './loader.model';
 export interface LoaderOptions {
   url: string;
   async?: boolean;
+  mediaType?: string;
   elementId?: string;
   loadAfter?: boolean;
   isStylesheet: boolean;

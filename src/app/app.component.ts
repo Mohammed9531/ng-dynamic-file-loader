@@ -45,4 +45,8 @@ export class AppComponent implements OnInit {
       alert(v.isLoaded);
     });
   }
+
+  public deleteAll(): void {
+    this.loaderService.removeAll();
+  }
 }
