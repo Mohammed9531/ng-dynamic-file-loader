@@ -101,29 +101,41 @@ export class LoaderService {
     for (let i = 0; i < arr.length; i++) {
       subs.push(this.load(arr[i]));
     }
+    // returns consolidated observables
     return Observable.forkJoin(...subs);
   }
 
   /**
    * @public
+   * @param: {elementId<string>}
    * @return: void
-   * @description: removes all dynamically loaded scripts from the DOM 
+   * @description: removes a single element from the DOM 
    */
-  public removeAll(): void {
+  public remove(elementId: string): void {
     let el: HTMLElement;
-    const _keys: string[] = Object.keys(this.loadedFiles);
+    // find the element by id
+    el = document.getElementById(elementId);
+
+    // remove only if the remove method exists
+    if (el && el.remove instanceof Function) {
+      el.remove();
+    } else {
+      throw new Error(`element with the id ${elementId} does not exist.`);
+    }
+  }
+
+  /**
+   * @public
+   * @param: {elementIds<string[]>}
+   * @return: void
+   * @description: removes all dynamically injected scripts/styles from the DOM 
+   */
+  public removeAll(elementIds?: string[]): void {
+    let _keys: string[];
+    _keys = elementIds || Object.keys(this.loadedFiles);
 
     for (let i = 0; i < _keys.length; i++) {
-
-      // find the element by id
-       el = document.getElementById(_keys[i]);
-       
-       // remove only if the remove method exists
-       if (el && el.remove instanceof Function) {
-         el.remove();
-       } else {
-         throw new Error(`Element with the id ${_keys[i]} does not exist.`);
-       }
+      this.remove(_keys[i]);
     }
   }
 
@@ -136,7 +148,8 @@ export class LoaderService {
   private processRequest(e: NodeLoadEvent<HTMLElement>): void {
     // gets called on file load
     const el: HTMLElement = e.el;
-    (<any>el).onreadystatechange = el.onload = this.onLoad.bind(this,
+    (<any>el).onreadystatechange = el.onload = this.onLoad.bind(
+      this,
       new LoaderModel(<any>e, el)
     );
 
@@ -145,13 +158,9 @@ export class LoaderService {
 
     // use body if available. more safe in IE
     // (document.body || head).appendChild(styles);
-    if (e.options.insertBefore && 
-      e.options.insertBeforeElement) {
-      
+    if (e.options.insertBefore && e.options.insertBeforeElement) {
       // insert before the requested element
-      e.options.targetElement.insertBefore(
-        el, e.options.insertBeforeElement
-      );
+      e.options.targetElement.insertBefore(el, e.options.insertBeforeElement);
     } else {
       e.options.targetElement.appendChild(el);
     }
@@ -237,7 +246,7 @@ export class LoaderService {
       (!state || /loaded|complete/.test(state))
     ) {
       delete this.loadingFile[e.options.url];
-      this.loadedFiles[e.el.id] = {src: e.options.url};
+      this.loadedFiles[e.el.id] = { src: e.options.url };
 
       e.isLoaded$.next(new LoaderEvent(e.options, null, null, true));
       e.isLoaded$.complete();
