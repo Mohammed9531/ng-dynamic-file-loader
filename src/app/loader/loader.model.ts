@@ -1,7 +1,14 @@
-import { LoaderService } from "./loader.service";
 import { AsyncSubject } from "rxjs/Rx";
 import { NodeOptions, LoaderOptions, NodeLoadEvent } from "./loader.interface";
 
+/**
+ * @author: Shoukath Mohammed 
+ */
+
+/**
+ * @name: LoaderModel
+ * @description: a helper model for binding things together
+ */
 export class LoaderModel {
   public el: HTMLElement;
   public options: LoaderOptions;
@@ -14,6 +21,11 @@ export class LoaderModel {
   }
 }
 
+/**
+ * @name: LoaderEvent
+ * @description: responsible for constructing loader events
+ * object
+ */
 export class LoaderEvent {
   public isLoaded: boolean;
   public isQueued: boolean;
