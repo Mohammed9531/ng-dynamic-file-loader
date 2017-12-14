@@ -143,7 +143,11 @@ export class LoaderService {
 
     // use body if available. more safe in IE
     // (document.body || head).appendChild(styles);
-    e.options.targetElement.appendChild(el);
+    if (e.options.loadBefore && e.options.loadBeforeElement) {
+      e.options.targetElement.insertBefore(el, e.options.loadBeforeElement);
+    } else {
+      e.options.targetElement.appendChild(el);
+    }
   }
 
   /**

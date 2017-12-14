@@ -13,10 +13,10 @@ export interface LoaderOptions {
   async?: boolean;
   mediaType?: string;
   elementId?: string;
-  loadAfter?: boolean;
+  loadBefore?: boolean;
   isStylesheet: boolean;
   targetElement: HTMLElement;
-  loadAfterElement?: HTMLElement;
+  loadBeforeElement?: HTMLElement;
 }
 
 /**
