@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
-import { AsyncSubject, Observable } from "rxjs/Rx";
 import { LoaderConstants } from './loader.constants';
 import { LoaderModel, LoaderEvent } from './loader.model';
+import { AsyncSubject, Observable, Subscription } from "rxjs/Rx";
 import { LoaderOptions, NodeLoadEvent, NodeOptions, NodePreset } from "./loader.interface";
 
 /**
@@ -89,6 +89,19 @@ export class LoaderService {
 
     // return an observable so user can subscribe to it.
     return isLoaded$.asObservable();
+  }
+
+  /**
+   * @public
+   * @return: void
+   * @description: loads a list of scripts/styles 
+   */
+  public loadAll(arr: LoaderOptions[]): Observable<LoaderEvent[]> {
+    const subs: Observable<LoaderEvent>[] = [];
+    for (let i = 0; i < arr.length; i++) {
+      subs.push(this.load(arr[i]));
+    }
+    return Observable.forkJoin(...subs);
   }
 
   /**
@@ -220,7 +233,6 @@ export class LoaderService {
       this.loading = false;
 
       // load the next request in the queue
-      console.log(this.loadedFiles);
       this.loadNextQueueRequest();
     }
   }
