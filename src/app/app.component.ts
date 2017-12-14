@@ -55,13 +55,9 @@ export class AppComponent implements OnInit {
         url:
           "https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-beta/css/bootstrap.css",
         isStylesheet: true,
-        targetElement: (<any>document).getElementsByTagName("head")[0]
-      },
-      {
-        url:
-          "https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-beta/js/bootstrap.min.js",
-        isStylesheet: false,
-        targetElement: (<any>document).getElementsByTagName("head")[0]
+        targetElement: (<any>document).getElementsByTagName("head")[0],
+        loadBefore: true,
+        loadBeforeElement: (<any>document).getElementById("C136_2400")
       }
     ];
     this.loaderService.loadAll(config).subscribe(

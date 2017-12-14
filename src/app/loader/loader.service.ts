@@ -119,8 +119,10 @@ export class LoaderService {
        el = document.getElementById(_keys[i]);
        
        // remove only if the remove method exists
-       if (el.remove instanceof Function) {
+       if (el && el.remove instanceof Function) {
          el.remove();
+       } else {
+         throw new Error(`Element with the id ${_keys[i]} does not exist.`);
        }
     }
   }
@@ -143,8 +145,13 @@ export class LoaderService {
 
     // use body if available. more safe in IE
     // (document.body || head).appendChild(styles);
-    if (e.options.loadBefore && e.options.loadBeforeElement) {
-      e.options.targetElement.insertBefore(el, e.options.loadBeforeElement);
+    if (e.options.insertBefore && 
+      e.options.insertBeforeElement) {
+      
+      // insert before the requested element
+      e.options.targetElement.insertBefore(
+        el, e.options.insertBeforeElement
+      );
     } else {
       e.options.targetElement.appendChild(el);
     }
