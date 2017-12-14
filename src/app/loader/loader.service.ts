@@ -1,7 +1,7 @@
-import { LoaderModel } from './loader.model';
 import { Injectable } from "@angular/core";
 import { AsyncSubject, Observable } from "rxjs/Rx";
 import { LoaderConstants } from './loader.constants';
+import { LoaderModel, LoaderEvent } from './loader.model';
 import { LoaderOptions, NodeLoadEvent, NodeOptions, NodePreset } from "./loader.interface";
 
 /**
@@ -35,8 +35,8 @@ export class LoaderService {
    * @description: a reusable helper function to process the request 
    */
   public load(options: LoaderOptions,
-    isLoaded$?: AsyncSubject<boolean>): Observable<boolean> {
-    isLoaded$ = isLoaded$ || new AsyncSubject<boolean>();
+    isLoaded$?: AsyncSubject<LoaderEvent>): Observable<LoaderEvent> {
+    isLoaded$ = isLoaded$ || new AsyncSubject<LoaderEvent>();
 
     // reusable configuration for various node events
     const config: NodeOptions = {
@@ -44,8 +44,7 @@ export class LoaderService {
       isLoaded$: isLoaded$
     };
 
-    options.isStylesheet = options.isStylesheet 
-                          || this.getFileExt(options.url) === 'css';
+    options.isStylesheet = this.isStylesheet(options);
     
     // get the index of current request to check if the
     // current script/stylesheet was already loaded.
@@ -57,6 +56,8 @@ export class LoaderService {
     // if the file ain't loading, process it.
     if (this.loading) {
       !this.queue[currIdx] ? this.queue.push(config) : noop();
+      isLoaded$.next(new LoaderEvent(options, true));
+
       return isLoaded$.asObservable();
     } else {
       // process the rquest
@@ -98,17 +99,14 @@ export class LoaderService {
   private processRequest(e: NodeLoadEvent<HTMLElement>): void {
     // gets called on file load
     const el: HTMLElement = e.el;
-    (<any>el).onreadystatechange = el.onload = this.onLoad.bind(this, {
-      el: el,
-      options: e.options,
-      isLoaded$: e.isLoaded$
-    });
+    (<any>el).onreadystatechange = el.onload = this.onLoad.bind(this, 
+      new LoaderModel(<any>e, el)
+    );
 
     // gets called on file load error
-    el.onerror = this.onError.bind(this, {
-      options: e.options,
-      isLoaded$: e.isLoaded$
-    });
+    el.onerror = this.onError.bind(this, 
+      new LoaderModel(<any>e, el)
+    );
 
     // use body if available. more safe in IE
     // (document.body || head).appendChild(styles);
@@ -209,7 +207,7 @@ export class LoaderService {
       this.loadedFiles[e.options.url] = true;
       delete this.loadingFile[e.options.url];
 
-      e.isLoaded$.next(true);
+      e.isLoaded$.next(new LoaderEvent(e.options, null, null, true));
       e.isLoaded$.complete();
       this.loading = false;
 
@@ -226,10 +224,7 @@ export class LoaderService {
    * @description: error callback method
    */
   private onError(e: NodeLoadEvent<any>): void {
-    e.isLoaded$.error({
-      isLoaded: false,
-      options: e.options
-    });
+    e.isLoaded$.error(new LoaderEvent(e.options, null, null, false, true));
     e.isLoaded$.complete();
 
     this.loading = false;
@@ -246,5 +241,15 @@ export class LoaderService {
    */
   private getFileExt(url: string): string {
     return url.split('/').pop().split('#')[0].split('?')[0].split('.').pop();
+  }
+
+  /**
+   * @private
+   * @param: {options<LoaderOptions>}
+   * @return: boolean
+   * @description: returns true if the requested file is a stylesheet
+   */
+  private isStylesheet(options: LoaderOptions): boolean {
+    return options.isStylesheet || this.getFileExt(options.url) === 'css';
   }
 }

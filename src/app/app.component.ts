@@ -20,7 +20,7 @@ export class AppComponent implements OnInit {
       isStylesheet: true,
       targetElement: (<any>document).getElementsByTagName('head')[0]
     }).subscribe(v => {
-      console.log(`Loaded: ${++counter}`);
+      console.log(v);
     }, (v) => {
       alert(v.isLoaded);
     });
@@ -30,7 +30,7 @@ export class AppComponent implements OnInit {
       isStylesheet: true,
       targetElement: (<any>document).getElementsByTagName('head')[0]
     }).subscribe(v => {
-      console.log(`Loaded: ${++counter}`);
+      console.log(v);
     }, (v) => {
       alert(v.isLoaded);
     });
@@ -40,7 +40,7 @@ export class AppComponent implements OnInit {
       isStylesheet: false,
       targetElement: (<any>document).getElementsByTagName('head')[0]
     }).subscribe(v => {
-      console.log(`Loaded: ${++counter}`);
+      console.log(v);
     }, (v) => {
       alert(v.isLoaded);
     });
