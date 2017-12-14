@@ -34,5 +34,15 @@ export class AppComponent implements OnInit {
     }, (v) => {
       alert(v.isLoaded);
     });
+
+    this.loaderService.load({
+      url: 'https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-beta/js/bootstrap.min.js',
+      isStylesheet: false,
+      targetElement: (<any>document).getElementsByTagName('head')[0]
+    }).subscribe(v => {
+      console.log(`Loaded: ${++counter}`);
+    }, (v) => {
+      alert(v.isLoaded);
+    });
   }
 }
