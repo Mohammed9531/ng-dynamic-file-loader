@@ -121,7 +121,7 @@ export class LoaderService {
     if (el && el.remove instanceof Function) {
       el.remove();
     } else {
-      throw new Error(`element with the id ${elementId} does not exist.`);
+      throw new Error(`element with the id '${elementId}' does not exist.`);
     }
   }
 
