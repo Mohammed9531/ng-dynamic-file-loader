@@ -47,6 +47,7 @@ export class LoaderService {
     };
 
     options.isStylesheet = this.isStylesheet(options);
+    options.elementId = options.elementId || this.getUUId();
     // get the index of current request to check if the
     // current script/stylesheet was already loaded.
     const currIdx: number = this.queue.findIndex(
@@ -178,8 +179,8 @@ export class LoaderService {
 
     el.src = opts.options.url;
     el.type = "text/javascript";
+    el.id = opts.options.elementId;
     el.async = opts.options.async || false;
-    el.id = opts.options.elementId || this.getUUId();
 
     this.processRequest(new LoaderModel(opts, el));
   }
@@ -197,7 +198,7 @@ export class LoaderService {
     el.type = "text/css";
     el.rel = "stylesheet";
     el.href = opts.options.url;
-    el.id = opts.options.elementId || this.getUUId();
+    el.id = opts.options.elementId;
     el.media = (opts.options.mediaType || "screen").toLowerCase();
 
     this.processRequest(new LoaderModel(opts, el));
@@ -306,7 +307,7 @@ export class LoaderService {
    * @description: generates a unique id
    */
   private getUUId(): string {
-    const getUUId: any = (): number => Math.floor(Math.random() * 10000);
-    return `C${getUUId()}_${getUUId()}`;
+    const getUniqueId: any = (): number => Math.floor(Math.random() * 10000);
+    return `C${getUniqueId()}_${getUniqueId()}`;
   }
 }

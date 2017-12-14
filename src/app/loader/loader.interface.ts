@@ -13,7 +13,7 @@ export interface LoaderOptions {
   async?: boolean;
   mediaType?: string;
   elementId?: string;
-  isStylesheet: boolean;
+  isStylesheet?: boolean;
   insertBefore?: boolean;
   targetElement: HTMLElement;
   insertBeforeElement?: HTMLElement;
