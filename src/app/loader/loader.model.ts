@@ -1,4 +1,4 @@
-import { Subject } from 'rxjs/Rx';
+import { Observable, Subscriber } from 'rxjs/Rx';
 import { NodeOptions, LoaderOptions, NodeLoadEvent } from './loader.interface';
 
 /**
@@ -12,12 +12,14 @@ import { NodeOptions, LoaderOptions, NodeLoadEvent } from './loader.interface';
 export class LoaderModel {
   public el: HTMLElement;
   public options: LoaderOptions;
-  public isLoaded$: Subject<LoaderEvent>;
+  public observer$: Subscriber<any>;
+  public isLoaded$: Observable<LoaderEvent>;
 
   constructor(opts: NodeOptions, el?: HTMLElement) {
     this.el = el || null;
     this.options = opts.options;
     this.isLoaded$ = opts.isLoaded$;
+    this.observer$ = opts.observer$;
   }
 }
 

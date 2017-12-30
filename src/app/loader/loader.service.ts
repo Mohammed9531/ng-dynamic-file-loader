@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { LoaderConstants } from './loader.constants';
 import { LoaderModel, LoaderEvent } from './loader.model';
-import { Subject, Observable, Subscription } from 'rxjs/Rx';
+import { Observable, Subscription, Subscriber } from 'rxjs/Rx';
 import { LoaderOptions, NodeLoadEvent, NodeOptions, NodePreset } from './loader.interface';
 
 /**
@@ -30,48 +30,25 @@ export class LoaderService {
   /**
    * @public
    * @param: {options<LoaderOptions>}
-   * @param: {isLoaded$<Subject<boolean>>}
+   * @param: {isLoaded$<Observable<boolean>>}
    * @return: Observable<boolean>
    * @description: a reusable helper function to process the request 
    */
   public load(
     options: LoaderOptions,
-    isLoaded$?: Subject<LoaderEvent>
-  ): Observable<LoaderEvent> {
-    isLoaded$ = isLoaded$ || new Subject<LoaderEvent>();
+    isLoaded$?: Observable<LoaderEvent>,
+    observer$?: Subscriber<any>): Observable<LoaderEvent> {
 
-    // reusable configuration for various node events
-    const config: NodeOptions = {
-      options: options,
-      isLoaded$: isLoaded$
-    };
-
-    options.isStylesheet = this.isStylesheet(options);
-    options.elementId = options.elementId || this.getUUId();
-    // get the index of current request to check if the
-    // current script/stylesheet was already loaded.
-    const currIdx: number = this.queue.findIndex(
-      req => req.url === options.url
-    );
-
-    // if the file is already loading push the request to the queue bucket
-    // if the file ain't loading, process it.
-    if (this.loading) {
-      !this.queue[currIdx] ? this.queue.push(config) : noop();
-      isLoaded$.next(new LoaderEvent(options, true));
-
-    // in case if the requested url is already loaded do not proceed
-    } else if (!this.loading && this.isLoaded(options.url)) {
-      isLoaded$.next(new LoaderEvent(options, null, null, true));
-      isLoaded$.complete();
-
-    // proceed with the loading
+    if (!!isLoaded$) {
+      this.init(options, observer$, isLoaded$);
     } else {
-      this.init(config, options);
+      isLoaded$ = new Observable<LoaderEvent>(obs => {
+        this.init(options, obs, isLoaded$);
+      });
     }
 
     // return an observable so user can subscribe to it.
-    return isLoaded$.asObservable();
+    return isLoaded$;
   }
 
   /**
@@ -114,11 +91,94 @@ export class LoaderService {
    * @description: removes all dynamically injected scripts/styles from the DOM 
    */
   public removeAll(elementIds?: string[]): void {
-    let _keys: string[];
-    _keys = elementIds || Object.keys(this.loadedFiles);
+    let keys: string[];
+    keys = elementIds || Object.keys(this.loadedFiles);
 
-    for (let i = 0; i < _keys.length; i++) {
-      this.remove(_keys[i]);
+    for (let i = 0; i < keys.length; i++) {
+      this.remove(keys[i]);
+    }
+  }
+
+  /**
+   * @private
+   * @param: {options<LoaderOptions>}
+   * @param: {observer$<Subscriber<any>>}
+   * @param: {isLoaded$<Observable<LoaderEvent>>}
+   * @return: void
+   * @description: a helper function that initializes the request
+   */
+  private init(
+    options: LoaderOptions,
+    observer$: Subscriber<any>,
+    isLoaded$: Observable<LoaderEvent>): void {
+
+    // reusable configuration for various node events
+    const config: NodeOptions = {
+      options: options,
+      observer$: observer$,
+      isLoaded$: isLoaded$
+    };
+
+    options.isStylesheet = this.isStylesheet(options);
+    options.elementId = options.elementId || this.getUUId();
+    // get the index of current request to check if the
+    // current script/stylesheet was already loaded.
+    const currIdx: number = this.queue.findIndex(
+      req => req.url === options.url
+    );
+
+    // if the file is already loading push the request to the queue bucket
+    // if the file ain't loading, process it.
+    if (this.loading) {
+      !this.queue[currIdx] ? this.queue.push(config) : noop();
+      observer$.next(new LoaderEvent(options, true));
+
+      // in case if the requested url is already loaded do not proceed
+    } else if (!this.loading && this.isLoaded(options.url)) {
+      observer$.next(new LoaderEvent(options, null, null, true));
+      observer$.complete();
+
+      // proceed with the loading
+    } else {
+      this.proceed(config, options);
+    }
+  }
+
+    /**
+   * @private
+   * @param: {conf<NodeOptions>}
+   * @param: {opts<LoaderOptions>}
+   * @return: void
+   * @description: a helper function that processes & completes
+   * the request.
+   */
+  private proceed(
+    conf: NodeOptions,
+    opts: LoaderOptions): void {
+
+    // process the rquest
+    this.loading = true;
+
+    // add the current url to the loading queue
+    this.loadingFile[opts.url] = true;
+
+    // emit loading event
+    conf.observer$.next(new LoaderEvent(opts, null, true));
+    /**
+     * process file based on the file type, currently it only supports
+     * stylesheet or a script
+     */
+    const extns: string[] = LoaderConstants.supportedExtns;
+
+    // do not process unsupported file formats
+    const idx: number = extns.indexOf(this.getFileExt(opts.url));
+
+    if (idx === -1) {
+      this.onError(conf);
+    } else {
+      // if the current request url is of supported extensions
+      // process it further
+      this[LoaderConstants[this.getFileExt(opts.url)]](conf);
     }
   }
 
@@ -207,10 +267,14 @@ export class LoaderService {
    * in the queue.
    */
   private loadNextQueueRequest(): void {
-    const nextQueueItem: any = this.queue.shift();
+    const nextQItem: any = this.queue.shift();
 
-    if (!!nextQueueItem) {
-      this.load(nextQueueItem.options, nextQueueItem.isLoaded$);
+    if (!!nextQItem) {
+      this.load(
+        nextQItem.options,
+        nextQItem.isLoaded$,
+        nextQItem.observer$
+      );
     }
   }
 
@@ -231,8 +295,8 @@ export class LoaderService {
       delete this.loadingFile[e.options.url];
       this.loadedFiles[e.el.id] = { src: e.options.url };
 
-      e.isLoaded$.next(new LoaderEvent(e.options, null, null, true));
-      e.isLoaded$.complete();
+      e.observer$.next(new LoaderEvent(e.options, null, null, true));
+      e.observer$.complete();
       this.loading = false;
 
       // load the next request in the queue
@@ -248,44 +312,13 @@ export class LoaderService {
    * @description: error callback method
    */
   private onError(e: NodeLoadEvent<any>): void {
-    e.isLoaded$.error(new LoaderEvent(e.options, null, null, false, true));
-    e.isLoaded$.complete();
+    e.observer$.error(new LoaderEvent(e.options, null, null, false, true));
+    e.observer$.complete();
 
     this.loading = false;
 
     // load the next request in the queue
     this.loadNextQueueRequest();
-  }
-
-  /**
-   * @private
-   * @param: {conf<NodeLoadEvent<any>>}
-   * @param: {opts<LoaderOptions>}
-   * @return: void
-   * @description: a helper function that initializes the request
-   */
-  private init(conf: NodeLoadEvent<any>, opts: LoaderOptions): void {
-    // process the rquest
-    this.loading = true;
-
-    // add the current url to the loading queue
-    this.loadingFile[opts.url] = true;
-    /**
-     * process file based on the file type, currently it only supports
-     * stylesheet or a script
-     */
-    const extns: string[] = LoaderConstants.supportedExtns;
-
-    // do not process unsupported file formats
-    const idx: number = extns.indexOf(this.getFileExt(opts.url));
-
-    if (idx === -1) {
-      this.onError(conf);
-    } else {
-      // if the current request url is of supported extensions
-      // process it further
-      this[LoaderConstants[this.getFileExt(opts.url)]](conf);
-    }
   }
 
   /**

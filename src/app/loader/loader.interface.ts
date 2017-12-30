@@ -1,5 +1,5 @@
-import { Subject } from 'rxjs/Rx';
 import { LoaderEvent } from './loader.model';
+import { Observable, Subscriber } from 'rxjs/Rx';
 
 /**
  * @author: Shoukath Mohammed
@@ -26,7 +26,8 @@ export interface LoaderOptions {
 export interface NodeLoadEvent<T> {
   el?: T;
   options?: LoaderOptions;
-  isLoaded$?: Subject<LoaderEvent>;
+  observer$?: Subscriber<any>;
+  isLoaded$?: Observable<LoaderEvent>;
 }
 
 /**
@@ -35,7 +36,8 @@ export interface NodeLoadEvent<T> {
  */
 export interface NodeOptions {
   options?: LoaderOptions;
-  isLoaded$: Subject<LoaderEvent>;
+  observer$?: Subscriber<any>;
+  isLoaded$: Observable<LoaderEvent>;
 }
 
 /**
