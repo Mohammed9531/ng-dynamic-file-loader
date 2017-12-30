@@ -1,8 +1,8 @@
-import { Injectable } from "@angular/core";
+import { Injectable } from '@angular/core';
 import { LoaderConstants } from './loader.constants';
 import { LoaderModel, LoaderEvent } from './loader.model';
-import { AsyncSubject, Observable, Subscription } from "rxjs/Rx";
-import { LoaderOptions, NodeLoadEvent, NodeOptions, NodePreset } from "./loader.interface";
+import { Subject, Observable, Subscription } from 'rxjs/Rx';
+import { LoaderOptions, NodeLoadEvent, NodeOptions, NodePreset } from './loader.interface';
 
 /**
  * @description: access the native document object
@@ -16,7 +16,7 @@ const noop: Function = new Function();
 type SupportedElements = HTMLLinkElement | HTMLScriptElement;
 
 /**
- * @author: Shoukath Mohammed 
+ * @author: Shoukath Mohammed
  */
 @Injectable()
 export class LoaderService {
@@ -30,15 +30,15 @@ export class LoaderService {
   /**
    * @public
    * @param: {options<LoaderOptions>}
-   * @param: {isLoaded$<AsyncSubject<boolean>>}
+   * @param: {isLoaded$<Subject<boolean>>}
    * @return: Observable<boolean>
    * @description: a reusable helper function to process the request 
    */
   public load(
     options: LoaderOptions,
-    isLoaded$?: AsyncSubject<LoaderEvent>
+    isLoaded$?: Subject<LoaderEvent>
   ): Observable<LoaderEvent> {
-    isLoaded$ = isLoaded$ || new AsyncSubject<LoaderEvent>();
+    isLoaded$ = isLoaded$ || new Subject<LoaderEvent>();
 
     // reusable configuration for various node events
     const config: NodeOptions = {
@@ -60,32 +60,14 @@ export class LoaderService {
       !this.queue[currIdx] ? this.queue.push(config) : noop();
       isLoaded$.next(new LoaderEvent(options, true));
 
-      return isLoaded$.asObservable();
-    } else {
-      // process the rquest
-      this.loading = true;
-
-      // add the current url to the loading queue
-      this.loadingFile[options.url] = true;
-    }
-
-    /**
-     * process file based on the file type, currently it only supports
-     * stylesheet or a script
-     */
-    const extns: string[] = LoaderConstants.supportedExtns;
-
-    // do not process unsupported file formats
-    if (extns.indexOf(this.getFileExt(options.url)) === -1) {
-      isLoaded$.error({ isLoaded: false });
+    // in case if the requested url is already loaded do not proceed
+    } else if (!this.loading && this.isLoaded(options.url)) {
+      isLoaded$.next(new LoaderEvent(options, null, null, true));
       isLoaded$.complete();
 
-      this.loading = false;
-      this.loadNextQueueRequest();
+    // proceed with the loading
     } else {
-      // if the current request url is of supported extensions
-      // process it further
-      this[LoaderConstants[this.getFileExt(options.url)]](config);
+      this.init(config, options);
     }
 
     // return an observable so user can subscribe to it.
@@ -175,10 +157,10 @@ export class LoaderService {
    */
   private loadScript(opts: NodeOptions): void {
     type Script = HTMLScriptElement;
-    const el: Script = <Script>document.createElement("script");
+    const el: Script = <Script>document.createElement('script');
 
     el.src = opts.options.url;
-    el.type = "text/javascript";
+    el.type = 'text/javascript';
     el.id = opts.options.elementId;
     el.async = opts.options.async || false;
 
@@ -193,13 +175,13 @@ export class LoaderService {
    */
   private loadStylesheet(opts: NodeOptions): void {
     type Style = HTMLLinkElement;
-    const el: Style = <Style>document.createElement("link");
+    const el: Style = <Style>document.createElement('link');
 
-    el.type = "text/css";
-    el.rel = "stylesheet";
+    el.type = 'text/css';
+    el.rel = 'stylesheet';
     el.href = opts.options.url;
     el.id = opts.options.elementId;
-    el.media = (opts.options.mediaType || "screen").toLowerCase();
+    el.media = (opts.options.mediaType || 'screen').toLowerCase();
 
     this.processRequest(new LoaderModel(opts, el));
   }
@@ -277,17 +259,48 @@ export class LoaderService {
 
   /**
    * @private
+   * @param: {conf<NodeLoadEvent<any>>}
+   * @param: {opts<LoaderOptions>}
+   * @return: void
+   * @description: a helper function that initializes the request
+   */
+  private init(conf: NodeLoadEvent<any>, opts: LoaderOptions): void {
+    // process the rquest
+    this.loading = true;
+
+    // add the current url to the loading queue
+    this.loadingFile[opts.url] = true;
+    /**
+     * process file based on the file type, currently it only supports
+     * stylesheet or a script
+     */
+    const extns: string[] = LoaderConstants.supportedExtns;
+
+    // do not process unsupported file formats
+    const idx: number = extns.indexOf(this.getFileExt(opts.url));
+
+    if (idx === -1) {
+      this.onError(conf);
+    } else {
+      // if the current request url is of supported extensions
+      // process it further
+      this[LoaderConstants[this.getFileExt(opts.url)]](conf);
+    }
+  }
+
+  /**
+   * @private
    * @param: {url<string>}
    * @return: string
    * @description: returns the file extensions as a string 
    */
   private getFileExt(url: string): string {
     return url
-      .split("/")
+      .split('/')
       .pop()
-      .split("#")[0]
-      .split("?")[0]
-      .split(".")
+      .split('#')[0]
+      .split('?')[0]
+      .split('.')
       .pop();
   }
 
@@ -298,7 +311,26 @@ export class LoaderService {
    * @description: returns true if the requested file is a stylesheet
    */
   private isStylesheet(options: LoaderOptions): boolean {
-    return options.isStylesheet || this.getFileExt(options.url) === "css";
+    return options.isStylesheet || this.getFileExt(options.url) === 'css';
+  }
+
+  /**
+   * @private
+   * @param: {url<string>}
+   * @return: boolean
+   * @description: returns true if the requested file is already loaded
+   */
+  private isLoaded(url: string): boolean {
+    let isDuplicate: boolean = false;
+    const keys: string[] = Object.keys(this.loadedFiles);
+
+    for (let i = 0; i < keys.length; i++) {
+      if (this.loadedFiles[keys[i]].src === url) {
+        isDuplicate = true;
+        break;
+      }
+    }
+    return isDuplicate;
   }
 
   /**

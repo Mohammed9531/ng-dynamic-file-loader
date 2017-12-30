@@ -1,5 +1,5 @@
-import { AsyncSubject } from "rxjs/Rx";
-import { NodeOptions, LoaderOptions, NodeLoadEvent } from "./loader.interface";
+import { Subject } from 'rxjs/Rx';
+import { NodeOptions, LoaderOptions, NodeLoadEvent } from './loader.interface';
 
 /**
  * @author: Shoukath Mohammed 
@@ -12,7 +12,7 @@ import { NodeOptions, LoaderOptions, NodeLoadEvent } from "./loader.interface";
 export class LoaderModel {
   public el: HTMLElement;
   public options: LoaderOptions;
-  public isLoaded$: AsyncSubject<LoaderEvent>;
+  public isLoaded$: Subject<LoaderEvent>;
 
   constructor(opts: NodeOptions, el?: HTMLElement) {
     this.el = el || null;

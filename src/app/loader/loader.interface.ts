@@ -1,8 +1,8 @@
-import { AsyncSubject } from "rxjs/Rx";
+import { Subject } from 'rxjs/Rx';
 import { LoaderEvent } from './loader.model';
 
 /**
- * @author: Shoukath Mohammed 
+ * @author: Shoukath Mohammed
  **
 /**
  * @name: LoaderOptions
@@ -26,7 +26,7 @@ export interface LoaderOptions {
 export interface NodeLoadEvent<T> {
   el?: T;
   options?: LoaderOptions;
-  isLoaded$?: AsyncSubject<LoaderEvent>;
+  isLoaded$?: Subject<LoaderEvent>;
 }
 
 /**
@@ -35,7 +35,7 @@ export interface NodeLoadEvent<T> {
  */
 export interface NodeOptions {
   options?: LoaderOptions;
-  isLoaded$: AsyncSubject<LoaderEvent>;
+  isLoaded$: Subject<LoaderEvent>;
 }
 
 /**
