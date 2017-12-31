@@ -78,6 +78,7 @@ export class LoaderService {
 
     // remove only if the remove method exists
     if (el && el.remove instanceof Function) {
+      delete this.loadedFiles[elementId];
       el.remove();
     } else {
       throw new Error(`element with the id '${elementId}' does not exist.`);
