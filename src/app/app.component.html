@@ -1,6 +1,6 @@
 <hr />
 <button type="button" class="btn btn-secondary" (click)="loadAll()">Load All</button>
-<button type="button" class="btn btn-danger" (click)="deleteAll()">Delete All</button>
+<button type="button" class="btn btn-danger" (click)="removeAll()">Remove All</button>
 <hr />
 <table class="table table-bordered table-striped table-hover">
     <thead>
@@ -9,19 +9,36 @@
         <th>Status</th>
     </thead>
     <tbody>
-        <tr *ngFor="let resource of config">
-            <td class="text-center">
-                <a href="#" (click)="load(resource, $event)" *ngIf="resource?.status != 'Loaded'" title="Load">
+        <ng-template ngFor let-resource [ngForOf]="config" let-i="index">
+            <tr>
+                <td class="text-center">
+                    <a href="#" (click)="load(resource, $event, i)" *ngIf="resource?.status != 'Loaded'" title="Load">
                     <i class="fa fa-play"></i>
                 </a>
-                <a href="#" (click)="remove($event, resource)" *ngIf="resource?.status == 'Loaded'" title="Remove">
+                    <a href="#" (click)="remove($event, resource)" *ngIf="resource?.status == 'Loaded'" title="Remove">
                     <i class="fa fa-trash"></i>
                 </a>
-            </td>
-            <td>{{resource.data.url}}</td>
-            <td>{{resource.status}}</td>
-        </tr>
+                </td>
+                <td>{{resource.data.url}}</td>
+                <td>{{resource.status}}</td>
+            </tr>
+            <tr *ngIf="currIdx == i">
+                <td colspan="3" class="logger-wrapper">
+                    <div class="logger-container">
+                        <code class="logger">
+                            <pre *ngFor="let log of results[i]">{{'> ' + log}}</pre>
+                        </code>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
     </tbody>
 </table>
 <hr />
-<pre>{{config | json}}</pre>
+<div class="logger-container" *ngIf="results.all && results.all.length">
+    <code class="logger">
+    <pre *ngFor="let log of results.all">{{'> ' + log}}</pre>
+</code>
+</div>
+<hr />
+<!-- <pre>{{config | json}}</pre> -->

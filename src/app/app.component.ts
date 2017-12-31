@@ -1,7 +1,9 @@
 import { element } from 'protractor';
-import { Component, OnInit } from '@angular/core';
 import { URLS, STATUS_MAPPING } from './app.constants';
 import { LoaderService } from './loader/loader.service';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+
+const noop: Function = (): void => {};
 
 /**
  * @author: Shoukath Mohammed
@@ -9,56 +11,73 @@ import { LoaderService } from './loader/loader.service';
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css']
+  styleUrls: ['./app.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppComponent implements OnInit {
   public config: any[];
+  public currIdx: number;
+  public results: any = {};
 
-  constructor(private loaderService: LoaderService) {}
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private loaderService: LoaderService
+  ) {}
 
   public ngOnInit(): void {
     this.init();
+    this.logger();
   }
 
-  public deleteAll(): void {
+  public removeAll(): void {
+    this.currIdx = null;
+    this.results.all = [];
     this.loaderService.removeAll();
 
-    this.config.forEach((resource) => {
+    this.config.forEach(resource => {
       resource.status = 'Not Started';
     });
   }
 
-  public load(resource: any, e?: Event): void {
-   (e) ? e.preventDefault() : undefined;
+  public load(
+    resource: any,
+    e?: Event,
+    activeIdx?: number,
+    reqType?: string
+  ): void {
+    e ? e.preventDefault() : noop();
+    this.currIdx = activeIdx;
+    this.results[this.currIdx] = [];
 
-    const idx: number = this.config.findIndex((i) => {
+    const idx: number = this.config.findIndex(i => {
       return i.cid === resource.cid;
     });
 
-    this.loaderService
-    .load(resource.data)
-    .subscribe(
+    this.loaderService.load(resource.data).subscribe(
       r => {
-        this.onLoad(idx, r);
+        this.onLoad(idx, r, reqType);
       },
       err => {
-        this.onLoad(idx, err);
+        this.onLoad(idx, err, reqType);
       }
     );
   }
 
   public loadAll(): void {
+    this.results.all = [];
     this.config.forEach(resource => {
-      this.load(resource);
+      this.load(resource, null, null, 'all');
     });
   }
 
-  private onLoad(idx: number, result: any): void {
-    this.config[idx].status = this.getStatus(result);
+  private onLoad(idx: number, result: any, reqType: string): void {
+    const status: string = this.getStatus(result);
+    this.config[idx].status = status;
     this.config[idx].logs.push(result);
   }
 
   public remove(e: Event, resource: any): void {
+    this.currIdx = null;
     this.loaderService.remove(resource.data.elementId);
     resource.status = 'Not Started';
   }
@@ -75,6 +94,7 @@ export class AppComponent implements OnInit {
       obj.data = {
         cid: cid,
         url: URLS[i],
+        debug: true,
         targetElement: head
       };
       counter++;
@@ -99,4 +119,17 @@ export class AppComponent implements OnInit {
     }
     return status;
   }
+
+  private logger(): void {
+    this.loaderService.logger$.subscribe(v => {
+      if (!!this.currIdx && this.currIdx >= 0) {
+        this.results[this.currIdx].push(v);
+      } else {
+        this.results['all'].push(v);
+      }
+      this.cdr.detectChanges();
+    });
+  }
 }
+
+
