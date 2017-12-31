@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { LoaderConstants } from './loader.constants';
 import { LoaderModel, LoaderEvent } from './loader.model';
-import { Observable, Subscription, Subscriber } from 'rxjs/Rx';
+import { Observable, Subscription, Subscriber, Subject } from 'rxjs/Rx';
 import { LoaderOptions, NodeLoadEvent, NodeOptions, NodePreset } from './loader.interface';
 
 /**
@@ -24,6 +24,7 @@ export class LoaderService {
   private queue: any[] = [];
   private loadingFile: any = {};
   private loadedFiles: any = {};
+  public logger$: Subject<string> = new Subject<string>();
 
   constructor() {}
 
@@ -73,15 +74,27 @@ export class LoaderService {
    */
   public remove(elementId: string): void {
     let el: HTMLElement;
+    const loaded: any = this.loadedFiles[elementId];
+
     // find the element by id
     el = document.getElementById(elementId);
 
     // remove only if the remove method exists
     if (el && el.remove instanceof Function) {
+      // remove initiated event
+      this.log('Removing', loaded);
+
       delete this.loadedFiles[elementId];
       el.remove();
+
+      // remove success event
+      this.log('Removed', loaded.options);
     } else {
-      throw new Error(`element with the id '${elementId}' does not exist.`);
+
+      // remove failed event
+      const error: string = `element with the id '${elementId}' does not exist.`;
+      this.log(`Remove operation failed:  ${error}`, null, true);
+      throw new Error(error);
     }
   }
 
@@ -134,8 +147,15 @@ export class LoaderService {
       !this.queue[currIdx] ? this.queue.push(config) : noop();
       observer$.next(new LoaderEvent(options, true));
 
+      // queued event
+      this.log('Queued', options);
+
       // in case if the requested url is already loaded do not proceed
     } else if (!this.loading && this.isLoaded(options.url)) {
+
+      // duplicate resource event
+      this.logger$.next(this.buildLog('Duplicate', options.url));
+
       observer$.next(new LoaderEvent(options, null, null, true));
       observer$.complete();
 
@@ -163,7 +183,8 @@ export class LoaderService {
     // add the current url to the loading queue
     this.loadingFile[opts.url] = true;
 
-    // emit loading event
+    // emit & loading event
+    this.log('Loading', opts);
     conf.observer$.next(new LoaderEvent(opts, null, true));
     /**
      * process file based on the file type, currently it only supports
@@ -202,9 +223,12 @@ export class LoaderService {
 
     // use body if available. more safe in IE
     // (document.body || head).appendChild(styles);
-    if (e.options.insertBefore && e.options.insertBeforeElement) {
+    if (e.options.insertBefore 
+      && e.options.insertBeforeElement) {
       // insert before the requested element
-      e.options.targetElement.insertBefore(el, e.options.insertBeforeElement);
+      e.options.targetElement.insertBefore(el,
+        e.options.insertBeforeElement
+      );
     } else {
       e.options.targetElement.appendChild(el);
     }
@@ -294,7 +318,13 @@ export class LoaderService {
       (!state || /loaded|complete/.test(state))
     ) {
       delete this.loadingFile[e.options.url];
-      this.loadedFiles[e.el.id] = { src: e.options.url };
+      this.loadedFiles[e.el.id] = {
+        src: e.options.url,
+        options: e.options
+      };
+
+      // loaded event
+      this.log('Done', e.options);
 
       e.observer$.next(new LoaderEvent(e.options, null, null, true));
       e.observer$.complete();
@@ -313,6 +343,9 @@ export class LoaderService {
    * @description: error callback method
    */
   private onError(e: NodeLoadEvent<any>): void {
+    // failed event
+    this.log('Failed', e.options);
+
     e.observer$.error(new LoaderEvent(e.options, null, null, false, true));
     e.observer$.complete();
 
@@ -375,5 +408,33 @@ export class LoaderService {
   private getUUId(): string {
     const getUniqueId: any = (): number => Math.floor(Math.random() * 10000);
     return `C${getUniqueId()}_${getUniqueId()}`;
+  }
+
+  /**
+   * @private
+   * @param: {status<string>}
+   * @param: {url<string>}
+   * @return: string
+   * @description: constructs log for debugging purpose
+   */
+  private buildLog(status: string, url?: string): string {
+    const now: Date = new Date();
+    return `[${now.getMilliseconds()}] ${status}${url ? ' -> ' + url : ''}`;
+  }
+
+  /**
+   * @private
+   * @param: {status<string>}
+   * @param: {opts<LoaderOptions>}
+   * @param: {flat<boolean>}
+   * @return: string
+   * @description: emits log on if debug mode is enabled
+   */
+  private log(status: string, opts?: LoaderOptions, flat?: boolean): void {
+    if (opts && opts.debug) {
+      this.logger$.next(this.buildLog(status, opts.url));
+    } else if (flat) {
+      this.logger$.next(this.buildLog(status));
+    }
   }
 }

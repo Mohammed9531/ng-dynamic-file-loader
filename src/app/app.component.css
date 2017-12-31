@@ -1,0 +1,9 @@
+code.logger {
+    background: black !important;
+    display: block;
+    border-radius: 0;
+}
+
+code.logger pre {
+    color: #00ff68;
+}
