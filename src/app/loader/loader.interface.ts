@@ -10,6 +10,7 @@ import { Observable, Subscriber } from 'rxjs/Rx';
  */
 export interface LoaderOptions {
   url: string;
+  cid?: string;
   async?: boolean;
   mediaType?: string;
   elementId?: string;
