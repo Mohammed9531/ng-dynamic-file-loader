@@ -65,6 +65,18 @@ export class LoaderService {
     // returns consolidated observables
     return Observable.forkJoin(...subs);
   }
+  
+  /**
+   * @public
+   * @return: void
+   * @description: resets the loaded files.
+   */
+  public reset(): void {
+    this.queue = [];
+    this.loading = false;
+    this.loadedFiles = {};
+    this.loadingFile = {};
+  }
 
   /**
    * @public
