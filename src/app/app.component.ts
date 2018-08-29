@@ -1,9 +1,8 @@
-import { element } from 'protractor';
 import { URLS, STATUS_MAPPING } from './app.constants';
 import { LoaderService } from './loader/loader.service';
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 
-const noop: Function = (): void => {};
+const noop: Function = (): void => { };
 
 /**
  * @author: Shoukath Mohammed
@@ -17,12 +16,16 @@ const noop: Function = (): void => {};
 export class AppComponent implements OnInit {
   public config: any[];
   public currIdx: number;
+  public actions: any = {};
   public results: any = {};
+  public logsList: string[] =[];
+  public loadingAll: boolean = false;
 
   constructor(
     private cdr: ChangeDetectorRef,
-    private loaderService: LoaderService
-  ) {}
+    private loaderService: LoaderService) {
+    this.results['all'] = [];
+  }
 
   public ngOnInit(): void {
     this.init();
@@ -32,6 +35,7 @@ export class AppComponent implements OnInit {
   public removeAll(): void {
     this.currIdx = null;
     this.results.all = [];
+    this.loadingAll = true;
     this.loaderService.removeAll();
 
     this.config.forEach(resource => {
@@ -39,25 +43,24 @@ export class AppComponent implements OnInit {
     });
   }
 
-  public load(
-    resource: any,
-    e?: Event,
-    activeIdx?: number,
-    reqType?: string
-  ): void {
+  public load(resource: any,
+    e?: Event, activeIdx?: number, reqType?: string): void {
+
     e ? e.preventDefault() : noop();
     this.currIdx = activeIdx;
+    this.actions[activeIdx] = true;
     this.results[this.currIdx] = [];
+    this.loadingAll = (reqType == 'all');
 
     const idx: number = this.config.findIndex(i => {
       return i.cid === resource.cid;
     });
 
     this.loaderService.load(resource.data).subscribe(
-      r => {
+      (r) => {
         this.onLoad(idx, r, reqType);
       },
-      err => {
+      (err) => {
         this.onLoad(idx, err, reqType);
       }
     );
@@ -65,6 +68,7 @@ export class AppComponent implements OnInit {
 
   public loadAll(): void {
     this.results.all = [];
+    this.loadingAll = true;
     this.config.forEach(resource => {
       this.load(resource, null, null, 'all');
     });
@@ -78,6 +82,7 @@ export class AppComponent implements OnInit {
 
   public remove(e: Event, resource: any): void {
     this.currIdx = null;
+    this.loadingAll = false;
     this.loaderService.remove(resource.data.elementId);
     resource.status = 'Not Started';
   }
@@ -95,6 +100,7 @@ export class AppComponent implements OnInit {
         cid: cid,
         url: URLS[i],
         debug: true,
+        timer: 2000,
         targetElement: head
       };
       counter++;
@@ -121,13 +127,16 @@ export class AppComponent implements OnInit {
   }
 
   private logger(): void {
-    this.loaderService.logger$.subscribe(v => {
-      if (!!this.currIdx && this.currIdx >= 0) {
+    this.loaderService.getlog().subscribe(v => {
+      if (typeof this.currIdx == 'number' && this.currIdx >= 0) {
         this.results[this.currIdx].push(v);
       } else {
-        this.results['all'].push(v);
+        this.logsList.push(v);
       }
-      this.cdr.detectChanges();
+      this.cdr.markForCheck();
+
+
+      console.log(this.results[this.currIdx]);
     });
   }
 }

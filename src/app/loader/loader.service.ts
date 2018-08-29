@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { LoaderConstants } from './loader.constants';
 import { LoaderModel, LoaderEvent } from './loader.model';
-import { Observable, Subscription, Subscriber, Subject } from 'rxjs/Rx';
+import { Observable, Subscriber, Subject } from 'rxjs/Rx';
 import { LoaderOptions, NodeLoadEvent, NodeOptions, NodePreset } from './loader.interface';
 
 /**
@@ -24,9 +24,9 @@ export class LoaderService {
   private queue: any[] = [];
   private loadingFile: any = {};
   private loadedFiles: any = {};
-  public logger$: Subject<string> = new Subject<string>();
+  private logger$: Subject<string> = new Subject<string>();
 
-  constructor() {}
+  constructor() { }
 
   /**
    * @public
@@ -126,6 +126,15 @@ export class LoaderService {
   }
 
   /**
+   * @public
+   * @return: Observable<any>
+   * @description: emits log on if debug mode is enabled
+   */
+  public getlog(): Observable<any> {
+    return this.logger$.asObservable();
+  }
+
+  /**
    * @private
    * @param: {options<LoaderOptions>}
    * @param: {observer$<Subscriber<any>>}
@@ -177,7 +186,7 @@ export class LoaderService {
     }
   }
 
-    /**
+  /**
    * @private
    * @param: {conf<NodeOptions>}
    * @param: {opts<LoaderOptions>}
@@ -343,7 +352,8 @@ export class LoaderService {
       this.loading = false;
 
       // load the next request in the queue
-      this.loadNextQueueRequest();
+      // this.loadNextQueueRequest();
+      this.invoke(this.loadNextQueueRequest, e.options);
     }
   }
 
@@ -364,7 +374,20 @@ export class LoaderService {
     this.loading = false;
 
     // load the next request in the queue
-    this.loadNextQueueRequest();
+    // if (e.options.timer) {
+    //   setTimeout(this.loadNextQueueRequest(), e.options.timer);
+    // } else {
+    //   this.loadNextQueueRequest();
+    // }
+    this.invoke(this.loadNextQueueRequest, e.options);
+  }
+
+  private invoke(fn: Function, options: LoaderOptions): void {
+    if (options.timer) {
+      setTimeout(fn.apply(this, arguments), options.timer);
+    } else {
+      fn.apply(this, arguments);
+    }
   }
 
   /**
@@ -431,7 +454,7 @@ export class LoaderService {
    */
   private buildLog(status: string, url?: string): string {
     const now: Date = new Date();
-    return `[${now.getMilliseconds()}] ${status}${url ? ' -> ' + url : ''}`;
+    return `[${now.toLocaleTimeString().split(' ')[0]}] ${status}${url ? ' -> ' + url : ''}`;
   }
 
   /**

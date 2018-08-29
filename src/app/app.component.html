@@ -13,16 +13,16 @@
             <tr>
                 <td class="text-center">
                     <a href="#" (click)="load(resource, $event, i)" *ngIf="resource?.status != 'Loaded'" title="Load">
-                    <i class="fa fa-play"></i>
-                </a>
+                        <i class="fa fa-play"></i>
+                    </a>
                     <a href="#" (click)="remove($event, resource)" *ngIf="resource?.status == 'Loaded'" title="Remove">
-                    <i class="fa fa-trash"></i>
-                </a>
+                        <i class="fa fa-trash"></i>
+                    </a>
                 </td>
                 <td>{{resource.data.url}}</td>
                 <td>{{resource.status}}</td>
             </tr>
-            <tr *ngIf="currIdx == i">
+            <tr *ngIf="actions[i] && !loadingAll">
                 <td colspan="3" class="logger-wrapper">
                     <div class="logger-container">
                         <code class="logger">
@@ -35,10 +35,9 @@
     </tbody>
 </table>
 <hr />
-<div class="logger-container" *ngIf="results.all && results.all.length">
+<div class="logger-container" *ngIf="loadingAll">
     <code class="logger">
-    <pre *ngFor="let log of results.all">{{'> ' + log}}</pre>
+    <pre *ngFor="let log of logsList">{{'> ' + log}}</pre>
 </code>
 </div>
 <hr />
-<!-- <pre>{{config | json}}</pre> -->
