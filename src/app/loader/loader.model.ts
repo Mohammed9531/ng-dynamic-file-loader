@@ -2,7 +2,7 @@ import { Observable, Subscriber } from 'rxjs/Rx';
 import { NodeOptions, LoaderOptions, NodeLoadEvent } from './loader.interface';
 
 /**
- * @author: Shoukath Mohammed 
+ * @author: Shoukath Mohammed
  */
 
 /**

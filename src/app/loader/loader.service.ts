@@ -33,7 +33,7 @@ export class LoaderService {
    * @param: {options<LoaderOptions>}
    * @param: {isLoaded$<Observable<boolean>>}
    * @return: Observable<boolean>
-   * @description: a reusable helper function to process the request 
+   * @description: a reusable helper function to process the request
    */
   public load(
     options: LoaderOptions,
@@ -55,7 +55,7 @@ export class LoaderService {
   /**
    * @public
    * @return: void
-   * @description: loads a list of scripts/styles 
+   * @description: loads a list of scripts/styles
    */
   public loadAll(arr: LoaderOptions[]): Observable<LoaderEvent[]> {
     const subs: Observable<LoaderEvent>[] = [];
@@ -65,7 +65,7 @@ export class LoaderService {
     // returns consolidated observables
     return Observable.forkJoin(...subs);
   }
-  
+
   /**
    * @public
    * @return: void
@@ -82,7 +82,7 @@ export class LoaderService {
    * @public
    * @param: {elementId<string>}
    * @return: void
-   * @description: removes a single element from the DOM 
+   * @description: removes a single element from the DOM
    */
   public remove(elementId: string): void {
     let el: HTMLElement;
@@ -114,7 +114,7 @@ export class LoaderService {
    * @public
    * @param: {elementIds<string[]>}
    * @return: void
-   * @description: removes all dynamically injected scripts/styles from the DOM 
+   * @description: removes all dynamically injected scripts/styles from the DOM
    */
   public removeAll(elementIds?: string[]): void {
     let keys: string[];
@@ -220,7 +220,7 @@ export class LoaderService {
    * @private
    * @param: {opts<NodeOptions>}
    * @return: void
-   * @description: a reusable helper function to process the request 
+   * @description: a reusable helper function to process the request
    */
   private processRequest(e: NodeLoadEvent<HTMLElement>): void {
     // gets called on file load
@@ -235,7 +235,7 @@ export class LoaderService {
 
     // use body if available. more safe in IE
     // (document.body || head).appendChild(styles);
-    if (e.options.insertBefore 
+    if (e.options.insertBefore
       && e.options.insertBeforeElement) {
       // insert before the requested element
       e.options.targetElement.insertBefore(el,
@@ -371,7 +371,7 @@ export class LoaderService {
    * @private
    * @param: {url<string>}
    * @return: string
-   * @description: returns the file extensions as a string 
+   * @description: returns the file extensions as a string
    */
   private getFileExt(url: string): string {
     return url
